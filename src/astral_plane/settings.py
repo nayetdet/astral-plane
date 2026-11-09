@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def assets(self) -> Path:
-        return Path(__file__).resolve().parents[2] / "orbslam3"
+        return Path(__file__).resolve().parents[2] / "assets"
 
     @computed_field
     @property

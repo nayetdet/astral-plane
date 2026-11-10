@@ -47,12 +47,7 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "orbslam3", version = "0.1.4", source = { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp310-cp310-manylinux_2_35_x86_64.whl" }, marker = "python_full_version == '3.10.*'" },
-    { name = "orbslam3", version = "0.1.4", source = { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp311-cp311-manylinux_2_35_x86_64.whl" }, marker = "python_full_version == '3.11.*'" },
-    { name = "orbslam3", version = "0.1.4", source = { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp312-cp312-manylinux_2_35_x86_64.whl" }, marker = "python_full_version == '3.12.*'" },
-    { name = "orbslam3", version = "0.1.4", source = { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp313-cp313-manylinux_2_35_x86_64.whl" }, marker = "python_full_version == '3.13.*'" },
-    { name = "orbslam3", version = "0.1.4", source = { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp314-cp314-manylinux_2_35_x86_64.whl" }, marker = "python_full_version >= '3.14'" },
-    { name = "orbslam3", version = "0.1.4", source = { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp39-cp39-manylinux_2_35_x86_64.whl" }, marker = "python_full_version < '3.10'" },
+    { name = "orbslam3" },
     { name = "pydantic", version = "2.13.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pydantic", version = "2.14.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pydantic-settings", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
@@ -63,13 +58,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "numpy", specifier = ">=1.22" },
-    { name = "orbslam3", marker = "python_full_version < '3.9' or python_full_version >= '3.15'" },
-    { name = "orbslam3", marker = "python_full_version == '3.9.*'", url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp39-cp39-manylinux_2_35_x86_64.whl" },
-    { name = "orbslam3", marker = "python_full_version == '3.10.*'", url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp310-cp310-manylinux_2_35_x86_64.whl" },
-    { name = "orbslam3", marker = "python_full_version == '3.11.*'", url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp311-cp311-manylinux_2_35_x86_64.whl" },
-    { name = "orbslam3", marker = "python_full_version == '3.12.*'", url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp312-cp312-manylinux_2_35_x86_64.whl" },
-    { name = "orbslam3", marker = "python_full_version == '3.13.*'", url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp313-cp313-manylinux_2_35_x86_64.whl" },
-    { name = "orbslam3", marker = "python_full_version == '3.14.*'", url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp314-cp314-manylinux_2_35_x86_64.whl" },
+    { name = "orbslam3", specifier = "==0.1.21", index = "https://github.com/nayetdet/orbslam3-python/releases/expanded_assets/v0.1.21" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pydantic-settings", specifier = ">=2" },
 ]
@@ -334,105 +323,46 @@ wheels = [
 
 [[package]]
 name = "orbslam3"
-version = "0.1.4"
-source = { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp310-cp310-manylinux_2_35_x86_64.whl" }
-resolution-markers = [
-    "python_full_version == '3.10.*'",
-]
+version = "0.1.21"
+source = { registry = "https://github.com/nayetdet/orbslam3-python/releases/expanded_assets/v0.1.21" }
 dependencies = [
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" } },
+    { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 wheels = [
-    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp310-cp310-manylinux_2_35_x86_64.whl", hash = "sha256:999edd7272e1a7b103002a637e4062bac2ea2e9323820b44a49221b71f650fca" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp310-cp310-macosx_15_0_arm64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp310-cp310-macosx_15_0_x86_64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp310-cp310-manylinux_2_35_aarch64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp310-cp310-manylinux_2_35_x86_64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp310-cp310-win_amd64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp311-cp311-macosx_15_0_arm64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp311-cp311-macosx_15_0_x86_64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp311-cp311-manylinux_2_35_aarch64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp311-cp311-manylinux_2_35_x86_64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp311-cp311-win_amd64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp312-cp312-macosx_15_0_arm64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp312-cp312-macosx_15_0_x86_64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp312-cp312-manylinux_2_35_aarch64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp312-cp312-manylinux_2_35_x86_64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp312-cp312-win_amd64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp313-cp313-macosx_15_0_arm64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp313-cp313-macosx_15_0_x86_64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp313-cp313-manylinux_2_35_aarch64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp313-cp313-manylinux_2_35_x86_64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp313-cp313-win_amd64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp314-cp314-macosx_15_0_arm64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp314-cp314-macosx_15_0_x86_64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp314-cp314-manylinux_2_35_aarch64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp314-cp314-manylinux_2_35_x86_64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp314-cp314-win_amd64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp39-cp39-macosx_15_0_arm64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp39-cp39-macosx_15_0_x86_64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp39-cp39-manylinux_2_35_aarch64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp39-cp39-manylinux_2_35_x86_64.whl" },
+    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.21/orbslam3-0.1.21-cp39-cp39-win_amd64.whl" },
 ]
-
-[package.metadata]
-requires-dist = [{ name = "numpy", specifier = ">=1.22" }]
-
-[[package]]
-name = "orbslam3"
-version = "0.1.4"
-source = { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp311-cp311-manylinux_2_35_x86_64.whl" }
-resolution-markers = [
-    "python_full_version == '3.11.*'",
-]
-dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" } },
-]
-wheels = [
-    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp311-cp311-manylinux_2_35_x86_64.whl", hash = "sha256:fffbe7b20c5e171bd9c1a0f44f0e742d20e4eeef44c3df97b787f75632892d01" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "numpy", specifier = ">=1.22" }]
-
-[[package]]
-name = "orbslam3"
-version = "0.1.4"
-source = { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp312-cp312-manylinux_2_35_x86_64.whl" }
-resolution-markers = [
-    "python_full_version == '3.12.*'",
-]
-dependencies = [
-    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" } },
-]
-wheels = [
-    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp312-cp312-manylinux_2_35_x86_64.whl", hash = "sha256:2536109acf85885b6ed1bdbd1ac131aeaedcae14045b3881f17981d97b3b96a5" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "numpy", specifier = ">=1.22" }]
-
-[[package]]
-name = "orbslam3"
-version = "0.1.4"
-source = { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp313-cp313-manylinux_2_35_x86_64.whl" }
-resolution-markers = [
-    "python_full_version == '3.13.*'",
-]
-dependencies = [
-    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" } },
-]
-wheels = [
-    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp313-cp313-manylinux_2_35_x86_64.whl", hash = "sha256:1a81e93d9908cae5446aff6238592650e232c58ad68102bbcd0b89bc29398aac" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "numpy", specifier = ">=1.22" }]
-
-[[package]]
-name = "orbslam3"
-version = "0.1.4"
-source = { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp314-cp314-manylinux_2_35_x86_64.whl" }
-resolution-markers = [
-    "python_full_version >= '3.14'",
-]
-dependencies = [
-    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" } },
-]
-wheels = [
-    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp314-cp314-manylinux_2_35_x86_64.whl", hash = "sha256:4337e7d3e20a2902520110130823074236aabee320944dd8910a59659b76398d" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "numpy", specifier = ">=1.22" }]
-
-[[package]]
-name = "orbslam3"
-version = "0.1.4"
-source = { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp39-cp39-manylinux_2_35_x86_64.whl" }
-resolution-markers = [
-    "python_full_version < '3.10'",
-]
-dependencies = [
-    { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" } },
-]
-wheels = [
-    { url = "https://github.com/nayetdet/orbslam3-python/releases/download/v0.1.4/orbslam3-0.1.4-cp39-cp39-manylinux_2_35_x86_64.whl", hash = "sha256:495c4fac9c5a9838fb3c430d96053b70ac6d4b3fe535bb31fbef7b260c50e99b" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "numpy", specifier = ">=1.22" }]
 
 [[package]]
 name = "pydantic"

@@ -5,6 +5,8 @@ pkgs.mkShell {
     expat
     python3
     uv
+    freenect
+    libusb1
     libx11
     libxext
     libxfixes
@@ -18,6 +20,8 @@ pkgs.mkShell {
   LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
     pkgs.glib
     pkgs.expat
+    pkgs.freenect
+    pkgs.libusb1
     pkgs.libx11
     pkgs.libxext
     pkgs.libxfixes

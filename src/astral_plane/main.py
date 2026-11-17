@@ -1,28 +1,54 @@
 from __future__ import annotations
 
-import numpy as np
-import orbslam3
+import sys
 
-from .settings import settings
+import numpy as np
+from numpy.typing import NDArray
+
+from astral_plane.core.kinect import Kinect
+from astral_plane.core.orbslam import OrbSlam
+from astral_plane.schemas.rgbd_frame import RGBDFrame
+from astral_plane.settings import settings
+from astral_plane.ui.ui import UI
 
 
 def main() -> None:
-    yy, xx = np.indices((480, 640))
-    pattern = ((xx // 24 + yy // 24) % 2 * 180 + 40).astype(np.uint8)
-    image = np.stack((pattern, np.roll(pattern, 7, axis=0), pattern), axis=-1)
-    depth = np.full((480, 640), 1.0, dtype=np.float32)
-    system = orbslam3.ORB_SLAM3(
-        str(settings.vocabulary_path),
-        str(settings.settings_path),
-        "rgbd",
-        visualize=False,
-    )
-
     try:
-        pose = system.TrackRGBD(image, depth, settings.timestamp)
-        print(pose)
-    finally:
-        system.Shutdown()
+        with Kinect() as camera:
+            first: RGBDFrame | None = camera.read(timeout=5.0)
+            if first is None:
+                print("Kinect did not produce an RGB-D frame", file=sys.stderr)
+                return
+
+            frame: RGBDFrame = first
+            slam: OrbSlam = OrbSlam(settings)
+            ui: UI = UI()
+
+            try:
+                pose: NDArray[np.float32] = slam.track(frame)
+                tracked: bool = slam.is_tracking()
+                while True:
+                    new: RGBDFrame | None = camera.read(timeout=0.03)
+                    if new is not None:
+                        frame = new
+                        pose = slam.track(frame)
+                        tracked = slam.is_tracking()
+
+                    if not ui.update(
+                        frame,
+                        pose,
+                        tracking=tracked,
+                        updated=new is not None,
+                    ):
+                        break
+            finally:
+                ui.close()
+                slam.close()
+    except KeyboardInterrupt:
+        print("Kinect capture stopped.")
+    except RuntimeError as exc:
+        print(f"Kinect startup or capture failed: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
 
 
 if __name__ == "__main__":

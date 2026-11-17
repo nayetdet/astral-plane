@@ -4,7 +4,9 @@ pkgs.mkShell {
     glib
     expat
     python3
+    python3Packages.pygame-ce
     uv
+    ruff
     freenect
     libusb1
     libx11

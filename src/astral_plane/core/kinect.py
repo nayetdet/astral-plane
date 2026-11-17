@@ -24,7 +24,7 @@ class Kinect:
     _DEPTH_REGISTERED: Final[int] = 4
     _VIDEO_RGB: Final[int] = 0
     _CLOCK_HZ: Final[int] = 60_000_000
-    _SYNC_WINDOW_TICKS: Final[int] = _CLOCK_HZ // 50
+    _SYNC_WINDOW_TICKS: Final[int] = _CLOCK_HZ // 25
     _TIMESTAMP_WRAP: Final[int] = 1 << 32
     _EVENT_TIMEOUT_US: Final[int] = 10_000
 

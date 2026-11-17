@@ -1,8 +1,7 @@
 import ctypes
 from collections.abc import Callable
-from typing import TypeAlias
 
-FrameHandler: TypeAlias = Callable[[int, int, int], None]
+FrameHandler = Callable[[int, int, int], None]
 
 
 class FrameMode(ctypes.Structure):

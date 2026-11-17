@@ -16,11 +16,17 @@ from astral_plane.ui.views.trajectory_view import TrajectoryView
 class UI:
     _SIZE: Final[tuple[int, int]] = (877, 720)
     _PADDING: Final[int] = 16
-    _BUTTON_SIZE: Final[tuple[int, int]] = (96, 38)
+    _BUTTON_HEIGHT: Final[int] = 38
     _STATE: Final[int] = 0
     _DEPTH: Final[int] = 1
     _TRAJECTORY: Final[int] = 2
     _POINT_CLOUD: Final[int] = 3
+    _LABELS: Final[tuple[str, ...]] = (
+        "SLAM State",
+        "Depth",
+        "Trajectory",
+        "Point Cloud",
+    )
 
     def __init__(self) -> None:
         pygame.init()
@@ -32,16 +38,10 @@ class UI:
         self._cloud: PointCloudView = PointCloudView()
         self._trajectory: TrajectoryView = TrajectoryView()
         self._mode: int = self._STATE
-        self._labels: tuple[str, ...] = (
-            "SLAM State",
-            "Depth",
-            "Trajectory",
-            "Point Cloud",
-        )
 
         button_width = 140
-        total_width = button_width * len(self._labels) + self._PADDING * (
-            len(self._labels) - 1
+        total_width = button_width * len(self._LABELS) + self._PADDING * (
+            len(self._LABELS) - 1
         )
 
         left = (self._SIZE[0] - total_width) // 2
@@ -50,16 +50,16 @@ class UI:
                 left + index * (button_width + self._PADDING),
                 self._PADDING,
                 button_width,
-                self._BUTTON_SIZE[1],
+                self._BUTTON_HEIGHT,
             )
-            for index in range(len(self._labels))
+            for index in range(len(self._LABELS))
         )
 
         self._content: pygame.Rect = pygame.Rect(
             self._PADDING,
-            self._PADDING * 2 + self._BUTTON_SIZE[1],
+            self._PADDING * 2 + self._BUTTON_HEIGHT,
             self._SIZE[0] - self._PADDING * 2,
-            self._SIZE[1] - self._PADDING * 3 - self._BUTTON_SIZE[1],
+            self._SIZE[1] - self._PADDING * 3 - self._BUTTON_HEIGHT,
         )
 
     def update(
@@ -95,6 +95,7 @@ class UI:
             timestamp=frame.timestamp,
             tracking=tracking,
             updated=updated,
+            map_segment=map_segment,
         )
 
         self._cloud.update(
@@ -113,7 +114,7 @@ class UI:
             text_color = (255, 255, 255) if active else (35, 35, 35)
             pygame.draw.rect(self._screen, color, button, border_radius=4)
             pygame.draw.rect(self._screen, (25, 25, 25), button, 1, border_radius=4)
-            label = self._font.render(self._labels[index], True, text_color)
+            label = self._font.render(self._LABELS[index], True, text_color)
             self._screen.blit(label, label.get_rect(center=button.center))
 
         scale = min(

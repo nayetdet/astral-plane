@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from contextlib import closing
 
 import numpy as np
 from numpy.typing import NDArray
@@ -25,30 +26,27 @@ def main() -> None:
                 raise SystemExit(1)
 
             frame: RGBDFrame = first
-            slam: OrbSlam = OrbSlam(settings)
-            ui: UI = UI()
-
-            try:
+            with closing(OrbSlam(settings)) as slam, closing(UI()) as ui:
                 pose: NDArray[np.float32] = slam.track(frame)
                 tracked: bool = slam.is_tracking()
+                updated: bool = True
                 while True:
                     new: RGBDFrame | None = camera.read(timeout=0.03)
                     if new is not None:
                         frame = new
                         pose = slam.track(frame)
                         tracked = slam.is_tracking()
+                        updated = True
 
                     if not ui.update(
                         frame,
                         pose,
                         tracking=tracked,
-                        updated=new is not None,
+                        updated=updated,
                         map_segment=slam.map_segment(),
                     ):
                         break
-            finally:
-                ui.close()
-                slam.close()
+                    updated = False
     except KeyboardInterrupt:
         print("Kinect capture stopped.")
     except RuntimeError as exc:

@@ -24,7 +24,7 @@ class Kinect:
     _DEPTH_REGISTERED: Final[int] = 4
     _VIDEO_RGB: Final[int] = 0
     _CLOCK_HZ: Final[int] = 60_000_000
-    _SYNC_WINDOW_TICKS: Final[int] = _CLOCK_HZ // 25
+    _SYNC_WINDOW_TICKS: Final[int] = _CLOCK_HZ // 60
     _TIMESTAMP_WRAP: Final[int] = 1 << 32
     _MAX_TIMESTAMP_GAP: Final[int] = 600_000_000
     _EVENT_TIMEOUT_US: Final[int] = 10_000
@@ -54,7 +54,13 @@ class Kinect:
         self._open_device(device_index)
         self._configure_streams()
         self._start_streams()
-        self._start_event_thread()
+        self._event_thread = Thread(
+            target=self._pump_events,
+            name="kinect-usb-events",
+            daemon=True,
+        )
+
+        self._event_thread.start()
 
     @staticmethod
     def _load_library() -> ctypes.CDLL:
@@ -124,14 +130,6 @@ class Kinect:
             self.close()
             raise RuntimeError("Could not start Kinect video stream")
         self._rgb_streaming = True
-
-    def _start_event_thread(self) -> None:
-        self._event_thread = Thread(
-            target=self._pump_events,
-            name="kinect-usb-events",
-            daemon=True,
-        )
-        self._event_thread.start()
 
     def _configure_api(self) -> None:
         lib: ctypes.CDLL = self._lib
@@ -203,11 +201,13 @@ class Kinect:
     def _pump_events(self) -> None:
         while not self._stop.is_set():
             timeout: Timeval = Timeval(0, self._EVENT_TIMEOUT_US)
-            event_result: int = self._lib.freenect_process_events_timeout(
-                self._context, ctypes.byref(timeout)
-            )
-
-            if event_result < 0 and not self._stop.is_set():
+            if (
+                self._lib.freenect_process_events_timeout(
+                    self._context, ctypes.byref(timeout)
+                )
+                < 0
+                and not self._stop.is_set()
+            ):
                 with self._frame_condition:
                     self._stream_error = RuntimeError(
                         "Kinect USB stream stopped while receiving frames"
@@ -243,19 +243,15 @@ class Kinect:
 
     def _next_frame(self) -> RGBDFrame | None:
         half_wrap = self._TIMESTAMP_WRAP // 2
-        depths = [
-            (index, timestamp)
-            for index, (timestamp, _) in enumerate(self._depth_queue)
-            if self._last_timestamp is None
-            or 0 < (timestamp - self._last_timestamp) % self._TIMESTAMP_WRAP < half_wrap
-        ]
         pairs = [
             (
                 abs(self._timestamp_skew(depth, rgb)),
                 depth_index,
                 rgb_index,
             )
-            for depth_index, depth in depths
+            for depth_index, (depth, _) in enumerate(self._depth_queue)
+            if self._last_timestamp is None
+            or 0 < (depth - self._last_timestamp) % self._TIMESTAMP_WRAP < half_wrap
             for rgb_index, (rgb, _) in enumerate(self._rgb_queue)
             if abs(self._timestamp_skew(depth, rgb)) <= self._SYNC_WINDOW_TICKS
         ]
@@ -273,7 +269,6 @@ class Kinect:
             return None
 
         _, depth_index, rgb_index = min(pairs, key=lambda pair: (pair[0], pair[1]))
-
         depth_timestamp, depth_mm = self._depth_queue[depth_index]
         _, rgb = self._rgb_queue[rgb_index]
 

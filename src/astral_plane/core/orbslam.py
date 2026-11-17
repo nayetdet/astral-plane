@@ -26,7 +26,6 @@ class OrbSlam:
         self._map_segment: int = 0
 
     def track(self, frame: RGBDFrame) -> NDArray[np.float32]:
-        reset_requested = False
         if (
             self._tracking_lost_at is not None
             and not self._reset_requested
@@ -35,10 +34,9 @@ class OrbSlam:
             self._slam.ResetActiveMap()
             self._map_segment += 1
             self._reset_requested = True
-            reset_requested = True
 
         pose = self._slam.TrackRGBD(frame.rgb, frame.depth_mm, frame.timestamp)
-        if self._slam.MapChanged() and not reset_requested:
+        if self._slam.MapChanged() and not self._reset_requested:
             self._map_segment += 1
 
         self._tracking = self._is_tracked_pose(pose)

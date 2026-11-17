@@ -37,8 +37,8 @@ class SlamStateView:
                 if cell[row, column] > self._MIN_RESPONSE:
                     pygame.draw.rect(
                         surface,
-                        (40, 220, 80),
-                        (int(left + column - 3), int(top + row - 3), 7, 7),
-                        1,
+                        (0, 255, 70),
+                        (int(left + column - 4), int(top + row - 4), 9, 9),
+                        2,
                     )
         return surface

@@ -46,9 +46,7 @@ class TrajectoryView:
             return surface
 
         path = [point for point in self._trajectory if point is not None]
-        points = np.array(
-            [(point[0], point[2]) for point in path], dtype=np.float32
-        )
+        points = np.array([(point[0], point[2]) for point in path], dtype=np.float32)
 
         points -= points[0]
         span = np.maximum(np.ptp(points, axis=0), 0.25)

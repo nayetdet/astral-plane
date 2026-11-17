@@ -70,14 +70,18 @@ class UI:
         updated: bool,
     ) -> bool:
         events = pygame.event.get()
-        if any(
-            event.type in (pygame.QUIT, pygame.WINDOWCLOSE)
-            or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE)
-            for event in events
-        ):
-            return False
+        for event in events:
+            if event.type in (pygame.QUIT, pygame.WINDOWCLOSE) or (
+                event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE
+            ):
+                return False
+            if event.type == pygame.KEYDOWN and pygame.K_1 <= event.key <= pygame.K_4:
+                self._mode = event.key - pygame.K_1
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                for index, button in enumerate(self._buttons):
+                    if button.collidepoint(event.pos):
+                        self._mode = index
 
-        self._select_mode(events)
         if self._mode == self._POINT_CLOUD:
             self._cloud.handle_events(events, self._content)
 
@@ -101,7 +105,13 @@ class UI:
 
         self._screen.fill((250, 250, 248))
         for index, button in enumerate(self._buttons):
-            self._draw_button(button, index)
+            active = index == self._mode
+            color = (35, 35, 35) if active else (255, 255, 255)
+            text_color = (255, 255, 255) if active else (35, 35, 35)
+            pygame.draw.rect(self._screen, color, button, border_radius=4)
+            pygame.draw.rect(self._screen, (25, 25, 25), button, 1, border_radius=4)
+            label = self._font.render(self._labels[index], True, text_color)
+            self._screen.blit(label, label.get_rect(center=button.center))
 
         view = views[self._mode]
         scale = min(
@@ -116,24 +126,6 @@ class UI:
         pygame.draw.rect(self._screen, (35, 35, 35), self._content, 1)
         pygame.display.flip()
         return True
-
-    def _select_mode(self, events: list[pygame.event.Event]) -> None:
-        for event in events:
-            if event.type == pygame.KEYDOWN and pygame.K_1 <= event.key <= pygame.K_4:
-                self._mode = event.key - pygame.K_1
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                for index, button in enumerate(self._buttons):
-                    if button.collidepoint(event.pos):
-                        self._mode = index
-
-    def _draw_button(self, button: pygame.Rect, index: int) -> None:
-        active = index == self._mode
-        color = (35, 35, 35) if active else (255, 255, 255)
-        text_color = (255, 255, 255) if active else (35, 35, 35)
-        pygame.draw.rect(self._screen, color, button, border_radius=4)
-        pygame.draw.rect(self._screen, (25, 25, 25), button, 1, border_radius=4)
-        text = self._font.render(self._labels[index], True, text_color)
-        self._screen.blit(text, text.get_rect(center=button.center))
 
     def close(self) -> None:
         pygame.quit()

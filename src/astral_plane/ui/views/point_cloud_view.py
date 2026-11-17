@@ -11,8 +11,8 @@ from astral_plane.schemas.rgbd_frame import RGBDFrame
 
 
 class PointCloudView:
-    _SAMPLE_STEP: Final[int] = 20
-    _MAX_POINTS: Final[int] = 250_000
+    _SAMPLE_STEP: Final[int] = 12
+    _MAX_POINTS: Final[int] = 180_000
     _UPDATE_INTERVAL: Final[float] = 0.12
     _MIN_DEPTH: Final[float] = 0.15
     _MAX_DEPTH: Final[float] = 6.0
@@ -102,19 +102,20 @@ class PointCloudView:
             self._compact()
 
     def _draw(self, surface: pygame.Surface) -> None:
-        points = self._rotate(self._points - self._points.mean(axis=0))
+        center = self._points.mean(axis=0)
+        points = self._rotate(self._points - center)
         radius = float(np.linalg.norm(points, axis=1).max())
-        distance = max(radius * 2.5 / self._zoom, 1.0)
+        distance = max(radius * 2.0 / self._zoom, 0.8)
         depth = points[:, 2] + distance
         visible = depth > self._NEAR_PLANE
-        focal = min(surface.get_size()) * 0.9
+        focal = min(surface.get_size()) * 1.15
         x = (surface.get_width() / 2 + focal * points[:, 0] / depth).astype(int)
-        y = (surface.get_height() / 2 - focal * points[:, 1] / depth).astype(int)
-        visible &= (x >= 1) & (x < surface.get_width() - 1)
-        visible &= (y >= 1) & (y < surface.get_height() - 1)
+        y = (surface.get_height() / 2 + focal * points[:, 1] / depth).astype(int)
+        visible &= (x >= 1) & (x < surface.get_width() - 2)
+        visible &= (y >= 1) & (y < surface.get_height() - 2)
         order = np.argsort(depth[visible])[::-1]
         x, y = x[visible][order], y[visible][order]
-        shade = np.clip(1.2 - depth[visible][order] / distance, 0.55, 1.0)
+        shade = np.clip(1.25 - depth[visible][order] / distance, 0.72, 1.0)
         colors = (self._colors[visible][order] * shade[:, None]).astype(np.uint8)
         pixels = pygame.surfarray.pixels3d(surface)
         for dx, dy in ((0, 0), (1, 0), (0, 1), (1, 1)):
@@ -122,25 +123,8 @@ class PointCloudView:
         del pixels
 
     def _compact(self) -> None:
-        voxel_size = 0.02
-        while True:
-            voxels = np.floor(self._points / voxel_size).astype(np.int32)
-            _, indices, inverse, counts = np.unique(
-                voxels,
-                axis=0,
-                return_index=True,
-                return_inverse=True,
-                return_counts=True,
-            )
-
-            if len(indices) <= self._MAX_POINTS:
-                break
-            voxel_size *= 1.5
-
-        self._points = self._points[indices]
-        color_sums = np.zeros((len(indices), 3), dtype=np.uint32)
-        np.add.at(color_sums, inverse, self._colors)
-        self._colors = (color_sums / counts[:, None]).astype(np.uint8)
+        self._points = self._points[::2]
+        self._colors = self._colors[::2]
 
     def _rotate(self, points: NDArray[np.float32]) -> NDArray[np.float32]:
         cy, sy = np.cos(self._yaw), np.sin(self._yaw)

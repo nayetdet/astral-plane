@@ -86,6 +86,15 @@ class UI:
 
         if self._mode == self._POINT_CLOUD:
             self._cloud.handle_events(events, self._content)
+        elif self._mode == self._TRAJECTORY:
+            self._trajectory.handle_events(events, self._content)
+
+        self._trajectory.update(
+            pose,
+            timestamp=frame.timestamp,
+            tracking=tracking,
+            updated=updated,
+        )
 
         view = self._render_view(
             frame,
@@ -132,12 +141,7 @@ class UI:
         if self._mode == self._DEPTH:
             return self._depth.render(frame.depth_mm)
         if self._mode == self._TRAJECTORY:
-            return self._trajectory.render(
-                pose,
-                timestamp=frame.timestamp,
-                tracking=tracking,
-                updated=updated,
-            )
+            return self._trajectory.render()
         self._cloud.update_map_segment(map_segment)
         return self._cloud.render(
             frame,

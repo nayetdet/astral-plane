@@ -10,7 +10,7 @@ from astral_plane.settings import Settings
 
 
 class OrbSlam:
-    _NEW_SEGMENT_AFTER: float = 1.0
+    _RESET_AFTER_LOST: float = 2.0
 
     def __init__(self, settings: Settings) -> None:
         self._slam: OrbSlamBinding = orbslam3.ORB_SLAM3(
@@ -22,10 +22,25 @@ class OrbSlam:
 
         self._tracking: bool = False
         self._tracking_lost_at: float | None = None
+        self._reset_requested: bool = False
         self._map_segment: int = 0
 
     def track(self, frame: RGBDFrame) -> NDArray[np.float32]:
+        reset_requested = False
+        if (
+            self._tracking_lost_at is not None
+            and not self._reset_requested
+            and frame.timestamp - self._tracking_lost_at >= self._RESET_AFTER_LOST
+        ):
+            self._slam.ResetActiveMap()
+            self._map_segment += 1
+            self._reset_requested = True
+            reset_requested = True
+
         pose = self._slam.TrackRGBD(frame.rgb, frame.depth_mm, frame.timestamp)
+        if self._slam.MapChanged() and not reset_requested:
+            self._map_segment += 1
+
         self._tracking = self._is_tracked_pose(pose)
         if not self._tracking:
             if self._tracking_lost_at is None:
@@ -33,13 +48,8 @@ class OrbSlam:
 
             return pose
 
-        if (
-            self._tracking_lost_at is not None
-            and frame.timestamp - self._tracking_lost_at >= self._NEW_SEGMENT_AFTER
-        ):
-            self._map_segment += 1
-
         self._tracking_lost_at = None
+        self._reset_requested = False
         return pose
 
     def is_tracking(self) -> bool:

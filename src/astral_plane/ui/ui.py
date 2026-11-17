@@ -77,6 +77,7 @@ class UI:
                 event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE
             ):
                 return False
+
             if event.type == pygame.KEYDOWN and pygame.K_1 <= event.key <= pygame.K_4:
                 self._mode = event.key - pygame.K_1
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -96,7 +97,7 @@ class UI:
             updated=updated,
         )
 
-        view = self._render_view(
+        self._cloud.update(
             frame,
             pose,
             tracking=tracking,
@@ -104,6 +105,7 @@ class UI:
             map_segment=map_segment,
         )
 
+        view = self._render_view(frame)
         self._screen.fill((250, 250, 248))
         for index, button in enumerate(self._buttons):
             active = index == self._mode
@@ -127,29 +129,14 @@ class UI:
         pygame.display.flip()
         return True
 
-    def _render_view(
-        self,
-        frame: RGBDFrame,
-        pose: NDArray[np.float32],
-        *,
-        tracking: bool,
-        updated: bool,
-        map_segment: int,
-    ) -> pygame.Surface:
+    def _render_view(self, frame: RGBDFrame) -> pygame.Surface:
         if self._mode == self._STATE:
             return self._state.render(frame.rgb)
         if self._mode == self._DEPTH:
             return self._depth.render(frame.depth_mm)
         if self._mode == self._TRAJECTORY:
             return self._trajectory.render()
-        self._cloud.update_map_segment(map_segment)
-        return self._cloud.render(
-            frame,
-            pose,
-            tracking=tracking,
-            updated=updated,
-            size=self._content.size,
-        )
+        return self._cloud.render(frame.timestamp, self._content.size)
 
     def close(self) -> None:
         pygame.quit()

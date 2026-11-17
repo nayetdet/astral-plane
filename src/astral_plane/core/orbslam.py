@@ -56,6 +56,13 @@ class OrbSlam:
     def map_segment(self) -> int:
         return self._map_segment
 
+    def reset_map(self) -> None:
+        self._slam.ResetActiveMap()
+        self._map_segment += 1
+        self._tracking_lost_at = None
+        self._reset_requested = True
+        self._tracking = False
+
     def close(self) -> None:
         self._slam.Shutdown()
 

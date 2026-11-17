@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Final
 
 import numpy as np
@@ -17,6 +18,7 @@ class UI:
     _SIZE: Final[tuple[int, int]] = (877, 720)
     _PADDING: Final[int] = 16
     _BUTTON_HEIGHT: Final[int] = 38
+    _RESET_BUTTON_WIDTH: Final[int] = 90
     _STATE: Final[int] = 0
     _DEPTH: Final[int] = 1
     _TRAJECTORY: Final[int] = 2
@@ -28,7 +30,7 @@ class UI:
         "Point Cloud",
     )
 
-    def __init__(self) -> None:
+    def __init__(self, reset_map: Callable[[], None]) -> None:
         pygame.init()
         self._screen: pygame.Surface = pygame.display.set_mode(self._SIZE)
         pygame.display.set_caption("Astral Plane")
@@ -38,21 +40,24 @@ class UI:
         self._cloud: PointCloudView = PointCloudView()
         self._trajectory: TrajectoryView = TrajectoryView()
         self._mode: int = self._STATE
+        self._reset_map: Callable[[], None] = reset_map
+        self._map_reset: bool = False
 
         button_width = 140
-        total_width = button_width * len(self._LABELS) + self._PADDING * (
-            len(self._LABELS) - 1
-        )
-
-        left = (self._SIZE[0] - total_width) // 2
         self._buttons: tuple[pygame.Rect, ...] = tuple(
             pygame.Rect(
-                left + index * (button_width + self._PADDING),
+                self._PADDING + index * (button_width + self._PADDING),
                 self._PADDING,
                 button_width,
                 self._BUTTON_HEIGHT,
             )
             for index in range(len(self._LABELS))
+        )
+        self._reset_button: pygame.Rect = pygame.Rect(
+            self._SIZE[0] - self._PADDING - self._RESET_BUTTON_WIDTH,
+            self._PADDING,
+            self._RESET_BUTTON_WIDTH,
+            self._BUTTON_HEIGHT,
         )
 
         self._content: pygame.Rect = pygame.Rect(
@@ -72,39 +77,32 @@ class UI:
         map_segment: int,
     ) -> bool:
         events = pygame.event.get()
-        for event in events:
-            if event.type in (pygame.QUIT, pygame.WINDOWCLOSE) or (
-                event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE
-            ):
-                return False
+        if not self._handle_events(events):
+            return False
 
-            if event.type == pygame.KEYDOWN and pygame.K_1 <= event.key <= pygame.K_4:
-                self._mode = event.key - pygame.K_1
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                for index, button in enumerate(self._buttons):
-                    if button.collidepoint(event.pos):
-                        self._mode = index
+        if self._map_reset:
+            self._map_reset = False
+        else:
+            if self._mode == self._POINT_CLOUD:
+                self._cloud.handle_events(events, self._content)
+            elif self._mode == self._TRAJECTORY:
+                self._trajectory.handle_events(events, self._content)
 
-        if self._mode == self._POINT_CLOUD:
-            self._cloud.handle_events(events, self._content)
-        elif self._mode == self._TRAJECTORY:
-            self._trajectory.handle_events(events, self._content)
+            self._trajectory.update(
+                pose,
+                timestamp=frame.timestamp,
+                tracking=tracking,
+                updated=updated,
+                map_segment=map_segment,
+            )
 
-        self._trajectory.update(
-            pose,
-            timestamp=frame.timestamp,
-            tracking=tracking,
-            updated=updated,
-            map_segment=map_segment,
-        )
-
-        self._cloud.update(
-            frame,
-            pose,
-            tracking=tracking,
-            updated=updated,
-            map_segment=map_segment,
-        )
+            self._cloud.update(
+                frame,
+                pose,
+                tracking=tracking,
+                updated=updated,
+                map_segment=map_segment,
+            )
 
         view = self._render_view(frame)
         self._screen.fill((250, 250, 248))
@@ -116,6 +114,18 @@ class UI:
             pygame.draw.rect(self._screen, (25, 25, 25), button, 1, border_radius=4)
             label = self._font.render(self._LABELS[index], True, text_color)
             self._screen.blit(label, label.get_rect(center=button.center))
+        pygame.draw.rect(
+            self._screen, (185, 55, 55), self._reset_button, border_radius=4
+        )
+        pygame.draw.rect(
+            self._screen,
+            (145, 35, 35),
+            self._reset_button,
+            1,
+            border_radius=4,
+        )
+        label = self._font.render("Reset", True, (255, 255, 255))
+        self._screen.blit(label, label.get_rect(center=self._reset_button.center))
 
         scale = min(
             self._content.width / view.get_width(),
@@ -128,6 +138,27 @@ class UI:
         self._screen.blit(image, rect)
         pygame.draw.rect(self._screen, (35, 35, 35), self._content, 1)
         pygame.display.flip()
+        return True
+
+    def _handle_events(self, events: list[pygame.event.Event]) -> bool:
+        for event in events:
+            if event.type in (pygame.QUIT, pygame.WINDOWCLOSE) or (
+                event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE
+            ):
+                return False
+
+            if event.type == pygame.KEYDOWN and pygame.K_1 <= event.key <= pygame.K_4:
+                self._mode = event.key - pygame.K_1
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self._reset_button.collidepoint(event.pos):
+                    self._reset_map()
+                    self._cloud.clear()
+                    self._trajectory.clear()
+                    self._map_reset = True
+                else:
+                    for index, button in enumerate(self._buttons):
+                        if button.collidepoint(event.pos):
+                            self._mode = index
         return True
 
     def _render_view(self, frame: RGBDFrame) -> pygame.Surface:

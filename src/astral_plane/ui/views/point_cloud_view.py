@@ -60,6 +60,15 @@ class PointCloudView:
                 self._zoom = float(np.clip(self._zoom * 1.1**event.y, 0.15, 12.0))
                 self._dirty = True
 
+    def clear(self) -> None:
+        self._points = np.empty((0, 3), dtype=np.float32)
+        self._colors = np.empty((0, 3), dtype=np.uint8)
+        self._segments = np.empty(0, dtype=np.int32)
+        self._voxels.clear()
+        self._last_update = float("-inf")
+        self._surface = None
+        self._dirty = True
+
     def update(
         self,
         frame: RGBDFrame,

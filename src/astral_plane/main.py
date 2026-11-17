@@ -26,7 +26,7 @@ def main() -> None:
                 raise SystemExit(1)
 
             frame: RGBDFrame = first
-            with closing(OrbSlam(settings)) as slam, closing(UI()) as ui:
+            with closing(OrbSlam(settings)) as slam, closing(UI(slam.reset_map)) as ui:
                 pose: NDArray[np.float32] = slam.track(frame)
                 tracked: bool = slam.is_tracking()
                 updated: bool = True

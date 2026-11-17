@@ -48,6 +48,12 @@ class TrajectoryView:
             ):
                 self._zoom = float(np.clip(self._zoom * 1.1**event.y, 0.2, 8.0))
 
+    def clear(self) -> None:
+        self._trajectory.clear()
+        self._last_position = None
+        self._last_timestamp = None
+        self._map_segment = None
+
     def update(
         self,
         pose: NDArray[np.float32],

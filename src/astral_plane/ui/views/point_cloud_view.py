@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import deque
 from collections.abc import Iterable
 from typing import Final
 
@@ -13,7 +12,7 @@ from astral_plane.schemas.rgbd_frame import RGBDFrame
 
 class PointCloudView:
     _SAMPLE_STEP: Final[int] = 20
-    _MAX_FRAMES: Final[int] = 50
+    _MAX_POINTS: Final[int] = 250_000
     _UPDATE_INTERVAL: Final[float] = 0.12
     _MIN_DEPTH: Final[float] = 0.15
     _MAX_DEPTH: Final[float] = 6.0
@@ -24,16 +23,12 @@ class PointCloudView:
     _CY: Final[float] = 239.5
 
     def __init__(self) -> None:
-        self._frames: deque[tuple[NDArray[np.float32], NDArray[np.uint8]]] = deque(
-            maxlen=self._MAX_FRAMES
-        )
         self._points: NDArray[np.float32] = np.empty((0, 3), dtype=np.float32)
         self._colors: NDArray[np.uint8] = np.empty((0, 3), dtype=np.uint8)
         self._last_update: float = float("-inf")
-        self._dirty: bool = False
         self._yaw: float = 0.0
         self._pitch: float = 0.45
-        self._zoom: float = 1.0
+        self._zoom: float = 1.5
         self._dragging: bool = False
 
     def handle_events(
@@ -73,7 +68,7 @@ class PointCloudView:
 
         surface = pygame.Surface(size)
         surface.fill((255, 255, 255))
-        if self._frames:
+        if len(self._points):
             self._draw(surface)
         return surface
 
@@ -98,18 +93,15 @@ class PointCloudView:
 
         rotation = pose[:3, :3]
         origin = -rotation.T @ pose[:3, 3]
-        self._frames.append(
-            (camera @ rotation + origin, frame.rgb[rows * step, columns * step])
+        self._points = np.concatenate((self._points, camera @ rotation + origin))
+        self._colors = np.concatenate(
+            (self._colors, frame.rgb[rows * step, columns * step])
         )
 
-        self._dirty = True
+        if len(self._points) > self._MAX_POINTS:
+            self._compact()
 
     def _draw(self, surface: pygame.Surface) -> None:
-        if self._dirty:
-            self._points = np.concatenate([points for points, _ in self._frames])
-            self._colors = np.concatenate([colors for _, colors in self._frames])
-            self._dirty = False
-
         points = self._rotate(self._points - self._points.mean(axis=0))
         radius = float(np.linalg.norm(points, axis=1).max())
         distance = max(radius * 2.5 / self._zoom, 1.0)
@@ -128,6 +120,27 @@ class PointCloudView:
         for dx, dy in ((0, 0), (1, 0), (0, 1), (1, 1)):
             pixels[x + dx, y + dy] = colors
         del pixels
+
+    def _compact(self) -> None:
+        voxel_size = 0.02
+        while True:
+            voxels = np.floor(self._points / voxel_size).astype(np.int32)
+            _, indices, inverse, counts = np.unique(
+                voxels,
+                axis=0,
+                return_index=True,
+                return_inverse=True,
+                return_counts=True,
+            )
+
+            if len(indices) <= self._MAX_POINTS:
+                break
+            voxel_size *= 1.5
+
+        self._points = self._points[indices]
+        color_sums = np.zeros((len(indices), 3), dtype=np.uint32)
+        np.add.at(color_sums, inverse, self._colors)
+        self._colors = (color_sums / counts[:, None]).astype(np.uint8)
 
     def _rotate(self, points: NDArray[np.float32]) -> NDArray[np.float32]:
         cy, sy = np.cos(self._yaw), np.sin(self._yaw)

@@ -252,7 +252,6 @@ class Kinect:
         pairs = [
             (
                 abs(self._timestamp_skew(depth, rgb)),
-                -max(depth_index, rgb_index),
                 depth_index,
                 rgb_index,
             )
@@ -273,7 +272,7 @@ class Kinect:
 
             return None
 
-        _, _, depth_index, rgb_index = min(pairs, key=lambda pair: (pair[0], -pair[1]))
+        _, depth_index, rgb_index = min(pairs, key=lambda pair: (pair[0], pair[1]))
 
         depth_timestamp, depth_mm = self._depth_queue[depth_index]
         _, rgb = self._rgb_queue[rgb_index]

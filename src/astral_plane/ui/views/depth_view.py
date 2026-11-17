@@ -10,6 +10,7 @@ class DepthView:
         normalized: NDArray[np.float32] = np.clip(
             depth_mm.astype(np.float32) / 5000.0, 0, 1
         )
+
         depth_rgb: NDArray[np.uint8] = np.stack(
             (
                 255 * (1 - normalized),
@@ -18,5 +19,6 @@ class DepthView:
             ),
             axis=-1,
         ).astype(np.uint8)
+
         depth_rgb[depth_mm == 0] = 0
         return pygame.surfarray.make_surface(np.swapaxes(depth_rgb, 0, 1))

@@ -60,7 +60,7 @@ class TrajectoryView:
         *,
         timestamp: float,
         tracking: bool,
-        updated: bool,
+        frame_updated: bool,
         map_segment: int,
     ) -> None:
         if self._map_segment is not None and map_segment != self._map_segment:
@@ -69,7 +69,7 @@ class TrajectoryView:
             self._last_timestamp = None
 
         self._map_segment = map_segment
-        if tracking and updated:
+        if tracking and frame_updated:
             pos = (-pose[:3, :3].T @ pose[:3, 3]).astype(np.float32)
             if self._is_continuous(pos, timestamp):
                 self._trajectory.append(pos)
@@ -83,11 +83,14 @@ class TrajectoryView:
     def render(self) -> pygame.Surface:
         surface = pygame.Surface(self._SIZE)
         surface.fill((255, 255, 255))
-        path = [point for point in self._trajectory if point is not None]
-        if len(path) < self._MIN_POINTS:
+        points = np.array(
+            [(point[0], point[2]) for point in self._trajectory if point is not None],
+            dtype=np.float32,
+        )
+
+        if len(points) < self._MIN_POINTS:
             return surface
 
-        points = np.array([(point[0], point[2]) for point in path], dtype=np.float32)
         points -= points[0]
         span = np.maximum(np.ptp(points, axis=0), 0.25)
         scale = (

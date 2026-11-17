@@ -33,6 +33,7 @@ class SlamStateView:
                     top : top + self._CELL_SIZE,
                     left : left + self._CELL_SIZE,
                 ]
+
                 row, column = np.unravel_index(np.argmax(cell), cell.shape)
                 if cell[row, column] > self._MIN_RESPONSE:
                     pygame.draw.rect(
@@ -41,4 +42,5 @@ class SlamStateView:
                         (int(left + column - 4), int(top + row - 4), 9, 9),
                         2,
                     )
+
         return surface

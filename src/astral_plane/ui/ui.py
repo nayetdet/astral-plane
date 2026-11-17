@@ -19,6 +19,7 @@ class UI:
     _PADDING: Final[int] = 16
     _BUTTON_HEIGHT: Final[int] = 38
     _RESET_BUTTON_WIDTH: Final[int] = 90
+    _TAB_WIDTH: Final[int] = 140
     _STATE: Final[int] = 0
     _DEPTH: Final[int] = 1
     _TRAJECTORY: Final[int] = 2
@@ -35,20 +36,18 @@ class UI:
         self._screen: pygame.Surface = pygame.display.set_mode(self._SIZE)
         pygame.display.set_caption("Astral Plane")
         self._font: pygame.font.Font = pygame.font.Font(None, 26)
-        self._state: SlamStateView = SlamStateView()
-        self._depth: DepthView = DepthView()
-        self._cloud: PointCloudView = PointCloudView()
-        self._trajectory: TrajectoryView = TrajectoryView()
-        self._mode: int = self._STATE
+        self._slam_state: SlamStateView = SlamStateView()
+        self._depth_view: DepthView = DepthView()
+        self._point_cloud: PointCloudView = PointCloudView()
+        self._trajectory_view: TrajectoryView = TrajectoryView()
+        self._active_tab: int = self._STATE
         self._reset_map: Callable[[], None] = reset_map
-        self._map_reset: bool = False
 
-        button_width = 140
         self._buttons: tuple[pygame.Rect, ...] = tuple(
             pygame.Rect(
-                self._PADDING + index * (button_width + self._PADDING),
+                self._PADDING + index * (self._TAB_WIDTH + self._PADDING),
                 self._PADDING,
-                button_width,
+                self._TAB_WIDTH,
                 self._BUTTON_HEIGHT,
             )
             for index in range(len(self._LABELS))
@@ -73,41 +72,40 @@ class UI:
         pose: NDArray[np.float32],
         *,
         tracking: bool,
-        updated: bool,
+        frame_updated: bool,
         map_segment: int,
     ) -> bool:
         events = pygame.event.get()
-        if not self._handle_events(events):
+        keep_running, map_reset = self._handle_events(events)
+        if not keep_running:
             return False
 
-        if self._map_reset:
-            self._map_reset = False
-        else:
-            if self._mode == self._POINT_CLOUD:
-                self._cloud.handle_events(events, self._content)
-            elif self._mode == self._TRAJECTORY:
-                self._trajectory.handle_events(events, self._content)
+        if not map_reset:
+            if self._active_tab == self._POINT_CLOUD:
+                self._point_cloud.handle_events(events, self._content)
+            elif self._active_tab == self._TRAJECTORY:
+                self._trajectory_view.handle_events(events, self._content)
 
-            self._trajectory.update(
+            self._trajectory_view.update(
                 pose,
                 timestamp=frame.timestamp,
                 tracking=tracking,
-                updated=updated,
+                frame_updated=frame_updated,
                 map_segment=map_segment,
             )
 
-            self._cloud.update(
+            self._point_cloud.update(
                 frame,
                 pose,
                 tracking=tracking,
-                updated=updated,
+                frame_updated=frame_updated,
                 map_segment=map_segment,
             )
 
         view = self._render_view(frame)
         self._screen.fill((250, 250, 248))
         for index, button in enumerate(self._buttons):
-            active = index == self._mode
+            active = index == self._active_tab
             color = (35, 35, 35) if active else (255, 255, 255)
             text_color = (255, 255, 255) if active else (35, 35, 35)
             pygame.draw.rect(self._screen, color, button, border_radius=4)
@@ -140,35 +138,36 @@ class UI:
         pygame.display.flip()
         return True
 
-    def _handle_events(self, events: list[pygame.event.Event]) -> bool:
+    def _handle_events(self, events: list[pygame.event.Event]) -> tuple[bool, bool]:
+        map_reset = False
         for event in events:
             if event.type in (pygame.QUIT, pygame.WINDOWCLOSE) or (
                 event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE
             ):
-                return False
+                return False, map_reset
 
             if event.type == pygame.KEYDOWN and pygame.K_1 <= event.key <= pygame.K_4:
-                self._mode = event.key - pygame.K_1
+                self._active_tab = event.key - pygame.K_1
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self._reset_button.collidepoint(event.pos):
                     self._reset_map()
-                    self._cloud.clear()
-                    self._trajectory.clear()
-                    self._map_reset = True
+                    self._point_cloud.clear()
+                    self._trajectory_view.clear()
+                    map_reset = True
                 else:
                     for index, button in enumerate(self._buttons):
                         if button.collidepoint(event.pos):
-                            self._mode = index
-        return True
+                            self._active_tab = index
+        return True, map_reset
 
     def _render_view(self, frame: RGBDFrame) -> pygame.Surface:
-        if self._mode == self._STATE:
-            return self._state.render(frame.rgb)
-        if self._mode == self._DEPTH:
-            return self._depth.render(frame.depth_mm)
-        if self._mode == self._TRAJECTORY:
-            return self._trajectory.render()
-        return self._cloud.render(frame.timestamp, self._content.size)
+        if self._active_tab == self._STATE:
+            return self._slam_state.render(frame.rgb)
+        if self._active_tab == self._DEPTH:
+            return self._depth_view.render(frame.depth_mm)
+        if self._active_tab == self._TRAJECTORY:
+            return self._trajectory_view.render()
+        return self._point_cloud.render(frame.timestamp, self._content.size)
 
     def close(self) -> None:
         pygame.quit()

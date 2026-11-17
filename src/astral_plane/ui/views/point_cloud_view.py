@@ -75,12 +75,12 @@ class PointCloudView:
         pose: NDArray[np.float32],
         *,
         tracking: bool,
-        updated: bool,
+        frame_updated: bool,
         map_segment: int,
     ) -> None:
         if (
             tracking
-            and updated
+            and frame_updated
             and frame.timestamp - self._last_update >= self._UPDATE_INTERVAL
         ):
             self._add(frame, pose, map_segment)
@@ -101,48 +101,50 @@ class PointCloudView:
     def _add(
         self, frame: RGBDFrame, pose: NDArray[np.float32], map_segment: int
     ) -> None:
-        step = self._SAMPLE_STEP
-        depth = frame.depth_mm[::step, ::step]
+        sample_step = self._SAMPLE_STEP
+        depth_samples = frame.depth_mm[::sample_step, ::sample_step]
         rows, columns = np.nonzero(
-            (depth > self._MIN_DEPTH_MM) & (depth < self._MAX_DEPTH_MM)
+            (depth_samples > self._MIN_DEPTH_MM) & (depth_samples < self._MAX_DEPTH_MM)
         )
 
         if not len(rows):
             return
 
-        distance = depth[rows, columns].astype(np.float32) / 1000.0
-        camera = np.column_stack(
+        distance = depth_samples[rows, columns].astype(np.float32) / 1000.0
+        camera_points = np.column_stack(
             (
-                (columns * step - self._CX) * distance / self._FX,
-                (rows * step - self._CY) * distance / self._FY,
+                (columns * sample_step - self._CX) * distance / self._FX,
+                (rows * sample_step - self._CY) * distance / self._FY,
                 distance,
             )
         ).astype(np.float32)
 
         rotation = pose[:3, :3]
-        origin = -rotation.T @ pose[:3, 3]
-        world = camera @ rotation + origin
-        voxels = np.floor(world / self._voxel_size).astype(np.int32)
-        _, unique = np.unique(voxels, axis=0, return_index=True)
-        unique.sort()
+        camera_origin = -rotation.T @ pose[:3, 3]
+        world_points = camera_points @ rotation + camera_origin
+        voxel_coordinates = np.floor(world_points / self._voxel_size).astype(np.int32)
+        _, point_indices = np.unique(voxel_coordinates, axis=0, return_index=True)
+        point_indices.sort()
 
-        colors = frame.rgb[rows * step, columns * step]
-        new_indices = [
+        colors = frame.rgb[rows * sample_step, columns * sample_step]
+        new_point_indices = [
             index
-            for index in unique
-            if (map_segment, *voxels[index]) not in self._voxels
+            for index in point_indices
+            if (map_segment, *voxel_coordinates[index]) not in self._voxels
         ]
 
-        if not new_indices:
+        if not new_point_indices:
             return
 
-        self._voxels.update((map_segment, *voxels[index]) for index in new_indices)
-        self._points = np.concatenate((self._points, world[new_indices]))
-        self._colors = np.concatenate((self._colors, colors[new_indices]))
+        self._voxels.update(
+            (map_segment, *voxel_coordinates[index]) for index in new_point_indices
+        )
+        self._points = np.concatenate((self._points, world_points[new_point_indices]))
+        self._colors = np.concatenate((self._colors, colors[new_point_indices]))
         self._segments = np.concatenate(
             (
                 self._segments,
-                np.full(len(new_indices), map_segment, dtype=np.int32),
+                np.full(len(new_point_indices), map_segment, dtype=np.int32),
             )
         )
         if len(self._points) > self._MAX_POINTS:
@@ -181,29 +183,36 @@ class PointCloudView:
         pixels = pygame.surfarray.pixels3d(surface)
         for dx, dy in ((0, 0), (1, 0), (0, 1), (1, 1)):
             pixels[x + dx, y + dy] = colors
+
         del pixels
 
     def _compact(self) -> None:
         voxel_size = self._voxel_size * 2
         while True:
-            voxels = np.floor(self._points / voxel_size).astype(np.int32)
-            keys = np.column_stack((self._segments, voxels))
-            unique, inverse = np.unique(keys, axis=0, return_inverse=True)
-            if len(unique) <= self._MAX_POINTS:
+            voxel_coordinates = np.floor(self._points / voxel_size).astype(np.int32)
+            voxel_keys = np.column_stack((self._segments, voxel_coordinates))
+            unique_voxels, voxel_groups = np.unique(
+                voxel_keys, axis=0, return_inverse=True
+            )
+
+            if len(unique_voxels) <= self._MAX_POINTS:
                 break
+
             voxel_size *= 2
 
-        counts = np.bincount(inverse, minlength=len(unique)).astype(np.float32)
-        points = np.zeros((len(unique), 3), dtype=np.float32)
-        colors = np.zeros((len(unique), 3), dtype=np.float32)
-        np.add.at(points, inverse, self._points)
-        np.add.at(colors, inverse, self._colors)
+        counts = np.bincount(voxel_groups, minlength=len(unique_voxels)).astype(
+            np.float32
+        )
+
+        points = np.zeros((len(unique_voxels), 3), dtype=np.float32)
+        colors = np.zeros((len(unique_voxels), 3), dtype=np.float32)
+        np.add.at(points, voxel_groups, self._points)
+        np.add.at(colors, voxel_groups, self._colors)
         self._points = points / counts[:, None]
         self._colors = (colors / counts[:, None]).astype(np.uint8)
-        self._segments = unique[:, 0].astype(np.int32)
+        self._segments = unique_voxels[:, 0].astype(np.int32)
         self._voxel_size = voxel_size
-        self._voxels.clear()
-        self._voxels = {tuple(voxel) for voxel in unique}
+        self._voxels = {tuple(voxel) for voxel in unique_voxels}
 
     def _rotate(self, points: NDArray[np.float32]) -> NDArray[np.float32]:
         cy, sy = np.cos(self._yaw), np.sin(self._yaw)

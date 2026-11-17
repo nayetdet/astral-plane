@@ -50,9 +50,11 @@ class OrbSlam:
         self._reset_requested = False
         return pose
 
-    def is_tracking(self) -> bool:
+    @property
+    def tracking(self) -> bool:
         return self._tracking
 
+    @property
     def map_segment(self) -> int:
         return self._map_segment
 

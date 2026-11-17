@@ -245,15 +245,18 @@ class Kinect:
         half_wrap = self._TIMESTAMP_WRAP // 2
         pairs = [
             (
-                abs(self._timestamp_skew(depth, rgb)),
+                abs(self._timestamp_skew(depth_timestamp, rgb_timestamp)),
                 depth_index,
                 rgb_index,
             )
-            for depth_index, (depth, _) in enumerate(self._depth_queue)
+            for depth_index, (depth_timestamp, _) in enumerate(self._depth_queue)
             if self._last_timestamp is None
-            or 0 < (depth - self._last_timestamp) % self._TIMESTAMP_WRAP < half_wrap
-            for rgb_index, (rgb, _) in enumerate(self._rgb_queue)
-            if abs(self._timestamp_skew(depth, rgb)) <= self._SYNC_WINDOW_TICKS
+            or 0
+            < (depth_timestamp - self._last_timestamp) % self._TIMESTAMP_WRAP
+            < half_wrap
+            for rgb_index, (rgb_timestamp, _) in enumerate(self._rgb_queue)
+            if abs(self._timestamp_skew(depth_timestamp, rgb_timestamp))
+            <= self._SYNC_WINDOW_TICKS
         ]
 
         if not pairs:
@@ -279,12 +282,16 @@ class Kinect:
             self._rgb_queue.popleft()
 
         if self._last_timestamp is not None:
-            elapsed = (depth_timestamp - self._last_timestamp) % self._TIMESTAMP_WRAP
-            if elapsed > self._MAX_TIMESTAMP_GAP:
+            elapsed_ticks = (
+                depth_timestamp - self._last_timestamp
+            ) % self._TIMESTAMP_WRAP
+
+            if elapsed_ticks > self._MAX_TIMESTAMP_GAP:
                 raise RuntimeError(
                     "Kinect timestamp reset or stalled for over 10 seconds"
                 )
-            self._elapsed_ticks += elapsed
+
+            self._elapsed_ticks += elapsed_ticks
 
         self._last_timestamp = depth_timestamp
         return RGBDFrame(

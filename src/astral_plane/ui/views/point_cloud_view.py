@@ -14,6 +14,7 @@ class PointCloudView:
     _SAMPLE_STEP: Final[int] = 12
     _MAX_POINTS: Final[int] = 180_000
     _UPDATE_INTERVAL: Final[float] = 0.12
+    _RENDER_INTERVAL: Final[float] = 0.1
     _MIN_DEPTH_MM: Final[int] = 150
     _MAX_DEPTH_MM: Final[int] = 6000
     _NEAR_PLANE: Final[float] = 0.1
@@ -26,6 +27,9 @@ class PointCloudView:
         self._points: NDArray[np.float32] = np.empty((0, 3), dtype=np.float32)
         self._colors: NDArray[np.uint8] = np.empty((0, 3), dtype=np.uint8)
         self._last_update: float = float("-inf")
+        self._last_render: float = float("-inf")
+        self._surface: pygame.Surface | None = None
+        self._dirty: bool = True
         self._yaw: float = 0.0
         self._pitch: float = 0.45
         self._zoom: float = 1.5
@@ -44,10 +48,12 @@ class PointCloudView:
                 self._pitch = float(
                     np.clip(self._pitch + event.rel[1] * 0.01, -1.45, 1.45)
                 )
+                self._dirty = True
             elif event.type == pygame.MOUSEWHEEL and area.collidepoint(
                 pygame.mouse.get_pos()
             ):
                 self._zoom = float(np.clip(self._zoom * 1.1**event.y, 0.3, 4.0))
+                self._dirty = True
 
     def render(
         self,
@@ -66,11 +72,16 @@ class PointCloudView:
             self._add(frame, pose)
             self._last_update = frame.timestamp
 
-        surface = pygame.Surface(size)
-        surface.fill((255, 255, 255))
-        if len(self._points):
-            self._draw(surface)
-        return surface
+        if self._surface is None or (
+            self._dirty and frame.timestamp - self._last_render >= self._RENDER_INTERVAL
+        ):
+            self._surface = pygame.Surface(size)
+            self._surface.fill((255, 255, 255))
+            if len(self._points):
+                self._draw(self._surface)
+            self._last_render = frame.timestamp
+            self._dirty = False
+        return self._surface
 
     def _add(self, frame: RGBDFrame, pose: NDArray[np.float32]) -> None:
         step = self._SAMPLE_STEP
@@ -97,6 +108,7 @@ class PointCloudView:
         self._colors = np.concatenate(
             (self._colors, frame.rgb[rows * step, columns * step])
         )
+        self._dirty = True
 
         if len(self._points) > self._MAX_POINTS:
             self._compact()

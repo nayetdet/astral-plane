@@ -85,23 +85,7 @@ class UI:
         if self._mode == self._POINT_CLOUD:
             self._cloud.handle_events(events, self._content)
 
-        views = (
-            self._state.render(frame.rgb),
-            self._depth.render(frame.depth_mm),
-            self._trajectory.render(
-                pose,
-                timestamp=frame.timestamp,
-                tracking=tracking,
-                updated=updated,
-            ),
-            self._cloud.render(
-                frame,
-                pose,
-                tracking=tracking,
-                updated=updated,
-                size=self._content.size,
-            ),
-        )
+        view = self._render_view(frame, pose, tracking=tracking, updated=updated)
 
         self._screen.fill((250, 250, 248))
         for index, button in enumerate(self._buttons):
@@ -113,7 +97,6 @@ class UI:
             label = self._font.render(self._labels[index], True, text_color)
             self._screen.blit(label, label.get_rect(center=button.center))
 
-        view = views[self._mode]
         scale = min(
             self._content.width / view.get_width(),
             self._content.height / view.get_height(),
@@ -126,6 +109,33 @@ class UI:
         pygame.draw.rect(self._screen, (35, 35, 35), self._content, 1)
         pygame.display.flip()
         return True
+
+    def _render_view(
+        self,
+        frame: RGBDFrame,
+        pose: NDArray[np.float32],
+        *,
+        tracking: bool,
+        updated: bool,
+    ) -> pygame.Surface:
+        if self._mode == self._STATE:
+            return self._state.render(frame.rgb)
+        if self._mode == self._DEPTH:
+            return self._depth.render(frame.depth_mm)
+        if self._mode == self._TRAJECTORY:
+            return self._trajectory.render(
+                pose,
+                timestamp=frame.timestamp,
+                tracking=tracking,
+                updated=updated,
+            )
+        return self._cloud.render(
+            frame,
+            pose,
+            tracking=tracking,
+            updated=updated,
+            size=self._content.size,
+        )
 
     def close(self) -> None:
         pygame.quit()

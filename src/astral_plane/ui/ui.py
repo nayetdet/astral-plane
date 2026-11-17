@@ -38,6 +38,7 @@ class UI:
             "Trajectory",
             "Point Cloud",
         )
+
         button_width = 140
         total_width = button_width * len(self._labels) + self._PADDING * (
             len(self._labels) - 1
@@ -68,6 +69,7 @@ class UI:
         *,
         tracking: bool,
         updated: bool,
+        map_segment: int,
     ) -> bool:
         events = pygame.event.get()
         for event in events:
@@ -85,7 +87,13 @@ class UI:
         if self._mode == self._POINT_CLOUD:
             self._cloud.handle_events(events, self._content)
 
-        view = self._render_view(frame, pose, tracking=tracking, updated=updated)
+        view = self._render_view(
+            frame,
+            pose,
+            tracking=tracking,
+            updated=updated,
+            map_segment=map_segment,
+        )
 
         self._screen.fill((250, 250, 248))
         for index, button in enumerate(self._buttons):
@@ -117,6 +125,7 @@ class UI:
         *,
         tracking: bool,
         updated: bool,
+        map_segment: int,
     ) -> pygame.Surface:
         if self._mode == self._STATE:
             return self._state.render(frame.rgb)
@@ -129,6 +138,7 @@ class UI:
                 tracking=tracking,
                 updated=updated,
             )
+        self._cloud.update_map_segment(map_segment)
         return self._cloud.render(
             frame,
             pose,

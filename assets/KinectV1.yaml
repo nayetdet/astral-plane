@@ -7,25 +7,19 @@ File.version: "1.0"
 
 Camera.type: "PinHole"
 
-# Camera calibration and distortion parameters (OpenCV) 
-Camera1.fx: 525.0
-Camera1.fy: 525.0
-Camera1.cx: 319.5
-Camera1.cy: 239.5
+Camera1.fx: 517.306408
+Camera1.fy: 516.469215
+Camera1.cx: 318.643040
+Camera1.cy: 255.313989
 
-Camera1.k1: 0.0
-Camera1.k2: 0.0
-Camera1.p1: 0.0
-Camera1.p2: 0.0
-Camera1.k3: 0.0
+Camera1.k1: 0.262383
+Camera1.k2: -0.953104
+Camera1.p1: -0.005358
+Camera1.p2: 0.002628
+Camera1.k3: 1.163314
 
 Camera.width: 640
 Camera.height: 480
-
-# Process a smaller image to reduce per-frame delay and pixel displacement.
-# ORB-SLAM3 scales the camera intrinsics to match these dimensions.
-Camera.newWidth: 480
-Camera.newHeight: 360
 
 # Camera frames per second 
 Camera.fps: 30
@@ -56,9 +50,8 @@ ORBextractor.nLevels: 8
 # ORB Extractor: Fast threshold
 # Image is divided in a grid. At each cell FAST are extracted imposing a minimum response.
 # Firstly we impose iniThFAST. If no corners are detected we impose a lower value minThFAST
-# Lower thresholds help retain corners in low-contrast indoor scenes.
-ORBextractor.iniThFAST: 15
-ORBextractor.minThFAST: 5
+ORBextractor.iniThFAST: 20
+ORBextractor.minThFAST: 7
 
 #--------------------------------------------------------------------------------------------
 # Viewer Parameters

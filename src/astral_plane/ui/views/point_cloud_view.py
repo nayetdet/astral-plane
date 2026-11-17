@@ -12,24 +12,29 @@ from astral_plane.schemas.rgbd_frame import RGBDFrame
 
 class PointCloudView:
     _SAMPLE_STEP: Final[int] = 12
+    _VOXEL_SIZE: Final[float] = 0.03
     _MAX_POINTS: Final[int] = 180_000
     _UPDATE_INTERVAL: Final[float] = 0.12
     _RENDER_INTERVAL: Final[float] = 0.1
     _MIN_DEPTH_MM: Final[int] = 150
     _MAX_DEPTH_MM: Final[int] = 6000
     _NEAR_PLANE: Final[float] = 0.1
-    _FX: Final[float] = 525.0
-    _FY: Final[float] = 525.0
-    _CX: Final[float] = 319.5
-    _CY: Final[float] = 239.5
+    _SEGMENT_GAP: Final[float] = 0.5
+    _FX: Final[float] = 517.306408
+    _FY: Final[float] = 516.469215
+    _CX: Final[float] = 318.643040
+    _CY: Final[float] = 255.313989
 
     def __init__(self) -> None:
         self._points: NDArray[np.float32] = np.empty((0, 3), dtype=np.float32)
         self._colors: NDArray[np.uint8] = np.empty((0, 3), dtype=np.uint8)
+        self._voxels: set[tuple[int, int, int]] = set()
         self._last_update: float = float("-inf")
         self._last_render: float = float("-inf")
         self._surface: pygame.Surface | None = None
         self._dirty: bool = True
+        self._map_segment: int | None = None
+        self._segment_offset_pending: bool = False
         self._yaw: float = 0.0
         self._pitch: float = 0.45
         self._zoom: float = 1.5
@@ -83,6 +88,11 @@ class PointCloudView:
             self._dirty = False
         return self._surface
 
+    def update_map_segment(self, map_segment: int) -> None:
+        if self._map_segment != map_segment:
+            self._segment_offset_pending = bool(len(self._points))
+            self._map_segment = map_segment
+
     def _add(self, frame: RGBDFrame, pose: NDArray[np.float32]) -> None:
         step = self._SAMPLE_STEP
         depth = frame.depth_mm[::step, ::step]
@@ -104,14 +114,32 @@ class PointCloudView:
 
         rotation = pose[:3, :3]
         origin = -rotation.T @ pose[:3, 3]
-        self._points = np.concatenate((self._points, camera @ rotation + origin))
-        self._colors = np.concatenate(
-            (self._colors, frame.rgb[rows * step, columns * step])
-        )
-        self._dirty = True
+        world = camera @ rotation + origin
+        if self._segment_offset_pending:
+            segment_offset = (
+                self._points[:, 0].max() + self._SEGMENT_GAP - world[:, 0].min()
+            )
+            world[:, 0] += segment_offset
+            self._segment_offset_pending = False
 
+        voxels = np.floor(world / self._VOXEL_SIZE).astype(np.int32)
+        _, unique = np.unique(voxels, axis=0, return_index=True)
+        unique.sort()
+
+        colors = frame.rgb[rows * step, columns * step]
+        new_indices = [
+            index for index in unique if tuple(voxels[index]) not in self._voxels
+        ]
+
+        if not new_indices:
+            return
+
+        self._voxels.update(tuple(voxels[index]) for index in new_indices)
+        self._points = np.concatenate((self._points, world[new_indices]))
+        self._colors = np.concatenate((self._colors, colors[new_indices]))
         if len(self._points) > self._MAX_POINTS:
             self._compact()
+        self._dirty = True
 
     def _draw(self, surface: pygame.Surface) -> None:
         center = self._points.mean(axis=0)
@@ -137,6 +165,8 @@ class PointCloudView:
     def _compact(self) -> None:
         self._points = self._points[::2]
         self._colors = self._colors[::2]
+        voxels = np.floor(self._points / self._VOXEL_SIZE).astype(np.int32)
+        self._voxels = {tuple(voxel) for voxel in voxels}
 
     def _rotate(self, points: NDArray[np.float32]) -> NDArray[np.float32]:
         cy, sy = np.cos(self._yaw), np.sin(self._yaw)

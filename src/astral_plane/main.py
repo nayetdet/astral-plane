@@ -15,10 +15,14 @@ from astral_plane.ui.ui import UI
 def main() -> None:
     try:
         with Kinect() as camera:
-            first: RGBDFrame | None = camera.read(timeout=5.0)
+            first: RGBDFrame | None = camera.read(timeout=15.0)
             if first is None:
-                print("Kinect did not produce an RGB-D frame", file=sys.stderr)
-                return
+                print(
+                    "Kinect did not produce an RGB-D frame within 15 seconds; "
+                    "check its USB connection and power",
+                    file=sys.stderr,
+                )
+                raise SystemExit(1)
 
             frame: RGBDFrame = first
             slam: OrbSlam = OrbSlam(settings)
@@ -39,6 +43,7 @@ def main() -> None:
                         pose,
                         tracking=tracked,
                         updated=new is not None,
+                        map_segment=slam.map_segment(),
                     ):
                         break
             finally:

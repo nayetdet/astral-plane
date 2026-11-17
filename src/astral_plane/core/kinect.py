@@ -26,6 +26,7 @@ class Kinect:
     _CLOCK_HZ: Final[int] = 60_000_000
     _SYNC_WINDOW_TICKS: Final[int] = _CLOCK_HZ // 25
     _TIMESTAMP_WRAP: Final[int] = 1 << 32
+    _MAX_TIMESTAMP_GAP: Final[int] = 600_000_000
     _EVENT_TIMEOUT_US: Final[int] = 10_000
 
     def __enter__(self) -> Kinect:
@@ -45,10 +46,7 @@ class Kinect:
         self._rgb_queue: deque[tuple[int, NDArray[np.uint8]]] = deque(maxlen=3)
         self._stream_error: RuntimeError | None = None
         self._last_timestamp: int | None = None
-        self._depth_timestamp: int | None = None
-        self._rgb_timestamp: int | None = None
-        self._depth_epoch: int = 0
-        self._rgb_epoch: int = 0
+        self._elapsed_ticks: int = 0
         self._stop: Event = Event()
         self._event_thread: Thread | None = None
         self._is_closed: bool = False
@@ -189,11 +187,6 @@ class Kinect:
         ).copy()
 
         with self._frame_condition:
-            timestamp, self._depth_timestamp, self._depth_epoch = (
-                self._unwrap_timestamp(
-                    timestamp, self._depth_timestamp, self._depth_epoch
-                )
-            )
             self._depth_queue.append((timestamp, depth_mm))
             self._frame_condition.notify()
 
@@ -204,19 +197,8 @@ class Kinect:
         ).copy()
 
         with self._frame_condition:
-            timestamp, self._rgb_timestamp, self._rgb_epoch = self._unwrap_timestamp(
-                timestamp, self._rgb_timestamp, self._rgb_epoch
-            )
             self._rgb_queue.append((timestamp, rgb))
             self._frame_condition.notify()
-
-    @classmethod
-    def _unwrap_timestamp(
-        cls, timestamp: int, previous: int | None, epoch: int
-    ) -> tuple[int, int, int]:
-        if previous is not None and timestamp < previous:
-            epoch += cls._TIMESTAMP_WRAP
-        return timestamp + epoch, timestamp, epoch
 
     def _pump_events(self) -> None:
         while not self._stop.is_set():
@@ -254,36 +236,47 @@ class Kinect:
 
                 self._frame_condition.wait(timeout=remaining)
 
+    @classmethod
+    def _timestamp_skew(cls, depth: int, rgb: int) -> int:
+        half_wrap = cls._TIMESTAMP_WRAP // 2
+        return (depth - rgb + half_wrap) % cls._TIMESTAMP_WRAP - half_wrap
+
     def _next_frame(self) -> RGBDFrame | None:
+        half_wrap = self._TIMESTAMP_WRAP // 2
+        depths = [
+            (index, timestamp)
+            for index, (timestamp, _) in enumerate(self._depth_queue)
+            if self._last_timestamp is None
+            or 0 < (timestamp - self._last_timestamp) % self._TIMESTAMP_WRAP < half_wrap
+        ]
         pairs = [
             (
-                abs(depth_timestamp - rgb_timestamp),
-                max(depth_timestamp, rgb_timestamp),
+                abs(self._timestamp_skew(depth, rgb)),
+                -max(depth_index, rgb_index),
                 depth_index,
                 rgb_index,
             )
-            for depth_index, (depth_timestamp, _) in enumerate(self._depth_queue)
-            for rgb_index, (rgb_timestamp, _) in enumerate(self._rgb_queue)
-            if abs(depth_timestamp - rgb_timestamp) <= self._SYNC_WINDOW_TICKS
+            for depth_index, depth in depths
+            for rgb_index, (rgb, _) in enumerate(self._rgb_queue)
+            if abs(self._timestamp_skew(depth, rgb)) <= self._SYNC_WINDOW_TICKS
         ]
-
-        if self._last_timestamp is not None:
-            pairs = [pair for pair in pairs if pair[1] > self._last_timestamp]
 
         if not pairs:
             if self._depth_queue and self._rgb_queue:
-                if self._depth_queue[0][0] < self._rgb_queue[0][0]:
+                if (
+                    self._timestamp_skew(self._depth_queue[0][0], self._rgb_queue[0][0])
+                    < 0
+                ):
                     self._depth_queue.popleft()
                 else:
                     self._rgb_queue.popleft()
+
             return None
 
-        _, _, depth_index, rgb_index = min(
-            pairs, key=lambda pair: (pair[0], -pair[1])
-        )
+        _, _, depth_index, rgb_index = min(pairs, key=lambda pair: (pair[0], -pair[1]))
 
         depth_timestamp, depth_mm = self._depth_queue[depth_index]
-        rgb_timestamp, rgb = self._rgb_queue[rgb_index]
+        _, rgb = self._rgb_queue[rgb_index]
 
         for _ in range(depth_index + 1):
             self._depth_queue.popleft()
@@ -291,12 +284,19 @@ class Kinect:
         for _ in range(rgb_index + 1):
             self._rgb_queue.popleft()
 
-        timestamp = max(depth_timestamp, rgb_timestamp)
-        self._last_timestamp = timestamp
+        if self._last_timestamp is not None:
+            elapsed = (depth_timestamp - self._last_timestamp) % self._TIMESTAMP_WRAP
+            if elapsed > self._MAX_TIMESTAMP_GAP:
+                raise RuntimeError(
+                    "Kinect timestamp reset or stalled for over 10 seconds"
+                )
+            self._elapsed_ticks += elapsed
+
+        self._last_timestamp = depth_timestamp
         return RGBDFrame(
             rgb=rgb,
             depth_mm=depth_mm,
-            timestamp=timestamp / self._CLOCK_HZ,
+            timestamp=self._elapsed_ticks / self._CLOCK_HZ,
         )
 
     def close(self) -> None:

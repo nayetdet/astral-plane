@@ -10,7 +10,7 @@ class OrbSlamBinding(Protocol):
     def TrackRGBD(
         self,
         rgb: NDArray[np.uint8],
-        depth_m: NDArray[np.float32],
+        depth_mm: NDArray[np.uint16],
         timestamp: float,
     ) -> NDArray[np.float32]: ...
 

@@ -7,5 +7,5 @@ from numpy.typing import NDArray
 @dataclass(frozen=True)
 class RGBDFrame:
     rgb: NDArray[np.uint8]
-    depth_m: NDArray[np.float32]
+    depth_mm: NDArray[np.uint16]
     timestamp: float

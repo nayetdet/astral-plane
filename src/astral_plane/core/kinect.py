@@ -278,7 +278,9 @@ class Kinect:
                     self._rgb_queue.popleft()
             return None
 
-        _, _, depth_index, rgb_index = min(pairs, key=lambda pair: (-pair[1], pair[0]))
+        _, _, depth_index, rgb_index = min(
+            pairs, key=lambda pair: (pair[0], -pair[1])
+        )
 
         depth_timestamp, depth_mm = self._depth_queue[depth_index]
         rgb_timestamp, rgb = self._rgb_queue[rgb_index]
@@ -289,13 +291,12 @@ class Kinect:
         for _ in range(rgb_index + 1):
             self._rgb_queue.popleft()
 
-        self._last_timestamp = max(depth_timestamp, rgb_timestamp)
-        depth_m: NDArray[np.float32] = depth_mm.astype(np.float32) / 1000.0
-        depth_m[depth_mm == 0] = 0.0
+        timestamp = max(depth_timestamp, rgb_timestamp)
+        self._last_timestamp = timestamp
         return RGBDFrame(
             rgb=rgb,
-            depth_m=depth_m,
-            timestamp=(depth_timestamp + rgb_timestamp) / (2 * self._CLOCK_HZ),
+            depth_mm=depth_mm,
+            timestamp=timestamp / self._CLOCK_HZ,
         )
 
     def close(self) -> None:

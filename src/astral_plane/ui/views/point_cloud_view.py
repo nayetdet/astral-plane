@@ -14,8 +14,8 @@ class PointCloudView:
     _SAMPLE_STEP: Final[int] = 12
     _MAX_POINTS: Final[int] = 180_000
     _UPDATE_INTERVAL: Final[float] = 0.12
-    _MIN_DEPTH: Final[float] = 0.15
-    _MAX_DEPTH: Final[float] = 6.0
+    _MIN_DEPTH_MM: Final[int] = 150
+    _MAX_DEPTH_MM: Final[int] = 6000
     _NEAR_PLANE: Final[float] = 0.1
     _FX: Final[float] = 525.0
     _FY: Final[float] = 525.0
@@ -74,15 +74,15 @@ class PointCloudView:
 
     def _add(self, frame: RGBDFrame, pose: NDArray[np.float32]) -> None:
         step = self._SAMPLE_STEP
-        depth = frame.depth_m[::step, ::step]
+        depth = frame.depth_mm[::step, ::step]
         rows, columns = np.nonzero(
-            (depth > self._MIN_DEPTH) & (depth < self._MAX_DEPTH)
+            (depth > self._MIN_DEPTH_MM) & (depth < self._MAX_DEPTH_MM)
         )
 
         if not len(rows):
             return
 
-        distance = depth[rows, columns]
+        distance = depth[rows, columns].astype(np.float32) / 1000.0
         camera = np.column_stack(
             (
                 (columns * step - self._CX) * distance / self._FX,

@@ -21,7 +21,7 @@ class OrbSlam:
         self._tracking: bool = False
 
     def track(self, frame: RGBDFrame) -> NDArray[np.float32]:
-        pose = self._slam.TrackRGBD(frame.rgb, frame.depth_m, frame.timestamp)
+        pose = self._slam.TrackRGBD(frame.rgb, frame.depth_mm, frame.timestamp)
         self._tracking = self._is_tracked_pose(pose)
         return pose
 

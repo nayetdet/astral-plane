@@ -87,7 +87,7 @@ class UI:
 
         views = (
             self._state.render(frame.rgb),
-            self._depth.render(frame.depth_m),
+            self._depth.render(frame.depth_mm),
             self._trajectory.render(
                 pose,
                 timestamp=frame.timestamp,

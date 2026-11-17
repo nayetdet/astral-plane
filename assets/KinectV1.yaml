@@ -32,8 +32,8 @@ Camera.RGB: 1
 Stereo.ThDepth: 40.0
 Stereo.b: 0.07732
 
-# Depth map values factor
-RGBD.DepthMapFactor: 1.0 # Kinect reader supplies registered depth in meters.
+# The Kinect reader supplies registered depth in millimeters.
+RGBD.DepthMapFactor: 1000.0
 
 #--------------------------------------------------------------------------------------------
 # ORB Parameters
@@ -52,8 +52,8 @@ ORBextractor.nLevels: 8
 # Image is divided in a grid. At each cell FAST are extracted imposing a minimum response.
 # Firstly we impose iniThFAST. If no corners are detected we impose a lower value minThFAST
 # You can lower these values if your images have low contrast			
-ORBextractor.iniThFAST: 12
-ORBextractor.minThFAST: 5
+ORBextractor.iniThFAST: 20
+ORBextractor.minThFAST: 7
 
 #--------------------------------------------------------------------------------------------
 # Viewer Parameters

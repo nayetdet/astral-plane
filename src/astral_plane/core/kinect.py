@@ -26,7 +26,6 @@ class Kinect:
     _CLOCK_HZ: Final[int] = 60_000_000
     _SYNC_WINDOW_TICKS: Final[int] = _CLOCK_HZ // 50
     _TIMESTAMP_WRAP: Final[int] = 1 << 32
-    _MIN_DEPTH_COVERAGE: Final[float] = 0.05
     _EVENT_TIMEOUT_US: Final[int] = 10_000
 
     def __enter__(self) -> Kinect:
@@ -42,8 +41,8 @@ class Kinect:
         self._depth_streaming: bool = False
         self._rgb_streaming: bool = False
         self._frame_condition: Condition = Condition()
-        self._depth_queue: deque[tuple[int, NDArray[np.uint16]]] = deque(maxlen=8)
-        self._rgb_queue: deque[tuple[int, NDArray[np.uint8]]] = deque(maxlen=8)
+        self._depth_queue: deque[tuple[int, NDArray[np.uint16]]] = deque(maxlen=3)
+        self._rgb_queue: deque[tuple[int, NDArray[np.uint8]]] = deque(maxlen=3)
         self._stream_error: RuntimeError | None = None
         self._last_timestamp: int | None = None
         self._depth_timestamp: int | None = None
@@ -121,6 +120,7 @@ class Kinect:
         if self._lib.freenect_start_depth(self._device) < 0:
             self.close()
             raise RuntimeError("Could not start Kinect depth stream")
+
         self._depth_streaming = True
         if self._lib.freenect_start_video(self._device) < 0:
             self.close()
@@ -175,6 +175,7 @@ class Kinect:
             ctypes.c_void_p,
             ctypes.POINTER(Timeval),
         ]
+
         lib.freenect_process_events_timeout.restype = ctypes.c_int
         lib.freenect_close_device.argtypes = [ctypes.c_void_p]
         lib.freenect_close_device.restype = ctypes.c_int
@@ -277,10 +278,7 @@ class Kinect:
                     self._rgb_queue.popleft()
             return None
 
-        _, _, depth_index, rgb_index = min(
-            pairs,
-            key=lambda pair: (pair[0], -pair[1]),
-        )
+        _, _, depth_index, rgb_index = min(pairs, key=lambda pair: (-pair[1], pair[0]))
 
         depth_timestamp, depth_mm = self._depth_queue[depth_index]
         rgb_timestamp, rgb = self._rgb_queue[rgb_index]
@@ -292,9 +290,6 @@ class Kinect:
             self._rgb_queue.popleft()
 
         self._last_timestamp = max(depth_timestamp, rgb_timestamp)
-        if np.count_nonzero(depth_mm) < depth_mm.size * self._MIN_DEPTH_COVERAGE:
-            return None
-
         depth_m: NDArray[np.float32] = depth_mm.astype(np.float32) / 1000.0
         depth_m[depth_mm == 0] = 0.0
         return RGBDFrame(

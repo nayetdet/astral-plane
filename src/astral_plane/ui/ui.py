@@ -23,6 +23,7 @@ class UI:
     _RESET_BUTTON_WIDTH: Final[int] = 82
     _EXPORT_BUTTON_WIDTH: Final[int] = 84
     _TAB_WIDTH: Final[int] = 136
+    _STATUS_DURATION_MS: Final[int] = 3000
     _STATE: Final[int] = 0
     _DEPTH: Final[int] = 1
     _TRAJECTORY: Final[int] = 2
@@ -71,6 +72,7 @@ class UI:
         )
 
         self._status_message: str = ""
+        self._status_until: int = 0
         self._content: pygame.Rect = pygame.Rect(
             self._PADDING,
             self._PADDING * 2 + self._BUTTON_HEIGHT,
@@ -160,8 +162,8 @@ class UI:
         rect = image.get_rect(center=self._content.center)
         self._screen.blit(image, rect)
         pygame.draw.rect(self._screen, (35, 35, 35), self._content, 1)
-        if self._status_message:
-            status = self._font.render(self._status_message, True, (45, 75, 55))
+        if self._status_message and pygame.time.get_ticks() < self._status_until:
+            status = self._font.render(self._status_message, True, (0, 0, 0))
             self._screen.blit(
                 status, (self._PADDING, self._SIZE[1] - status.get_height() - 4)
             )
@@ -185,7 +187,7 @@ class UI:
                     self._point_cloud.clear()
                     self._trajectory_view.clear()
                     map_reset = True
-                    self._status_message = "Map reset"
+                    self._show_status("Map reset")
                 elif self._export_button.collidepoint(event.pos):
                     self._export_point_cloud()
                 else:
@@ -198,9 +200,13 @@ class UI:
         try:
             path = self._point_cloud.export_ply()
         except (OSError, ValueError) as error:
-            self._status_message = f"Export failed: {error}"
+            self._show_status(f"Export failed: {error}")
         else:
-            self._status_message = f"Exported to {path}"
+            self._show_status(f"Exported to {path}")
+
+    def _show_status(self, message: str) -> None:
+        self._status_message = message
+        self._status_until = pygame.time.get_ticks() + self._STATUS_DURATION_MS
 
     def _render_view(self, frame: RGBDFrame) -> pygame.Surface:
         if self._active_tab == self._STATE:

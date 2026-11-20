@@ -18,9 +18,11 @@ class UI:
     _SIZE: Final[tuple[int, int]] = (877, 720)
     _PADDING: Final[int] = 16
     _BUTTON_HEIGHT: Final[int] = 38
-    _RESET_BUTTON_WIDTH: Final[int] = 90
-    _EXPORT_BUTTON_WIDTH: Final[int] = 72
-    _TAB_WIDTH: Final[int] = 140
+    _TAB_GAP: Final[int] = 6
+    _ACTION_GAP: Final[int] = 8
+    _RESET_BUTTON_WIDTH: Final[int] = 82
+    _EXPORT_BUTTON_WIDTH: Final[int] = 84
+    _TAB_WIDTH: Final[int] = 136
     _STATE: Final[int] = 0
     _DEPTH: Final[int] = 1
     _TRAJECTORY: Final[int] = 2
@@ -46,7 +48,7 @@ class UI:
 
         self._buttons: tuple[pygame.Rect, ...] = tuple(
             pygame.Rect(
-                self._PADDING + index * (self._TAB_WIDTH + self._PADDING),
+                self._PADDING + index * (self._TAB_WIDTH + self._TAB_GAP),
                 self._PADDING,
                 self._TAB_WIDTH,
                 self._BUTTON_HEIGHT,
@@ -62,7 +64,7 @@ class UI:
         )
 
         self._export_button: pygame.Rect = pygame.Rect(
-            self._reset_button.left - self._PADDING - self._EXPORT_BUTTON_WIDTH,
+            self._reset_button.left - self._ACTION_GAP - self._EXPORT_BUTTON_WIDTH,
             self._PADDING,
             self._EXPORT_BUTTON_WIDTH,
             self._BUTTON_HEIGHT,
@@ -126,7 +128,6 @@ class UI:
         pygame.draw.rect(
             self._screen, (185, 55, 55), self._reset_button, border_radius=4
         )
-
         pygame.draw.rect(
             self._screen,
             (145, 35, 35),
@@ -134,21 +135,18 @@ class UI:
             1,
             border_radius=4,
         )
-
         label = self._font.render("Reset", True, (255, 255, 255))
         self._screen.blit(label, label.get_rect(center=self._reset_button.center))
         pygame.draw.rect(
-            self._screen, (45, 115, 75), self._export_button, border_radius=4
+            self._screen, (45, 90, 185), self._export_button, border_radius=4
         )
-
         pygame.draw.rect(
             self._screen,
-            (30, 85, 55),
+            (30, 65, 140),
             self._export_button,
             1,
             border_radius=4,
         )
-
         label = self._font.render("Export", True, (255, 255, 255))
         self._screen.blit(label, label.get_rect(center=self._export_button.center))
 

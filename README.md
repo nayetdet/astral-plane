@@ -17,7 +17,7 @@ Switch views with the on-screen buttons or keys `1`–`4`:
 1. **SLAM State** — the live color image with detected visual features highlighted.
 2. **Depth** — a colorized view of the Kinect depth image.
 3. **Trajectory** — the camera path estimated from tracked frames.
-4. **Point Cloud** — a colored 3D map accumulated from depth frames. Drag to orbit and scroll to zoom.
+4. **Point Cloud** — a colored 3D map accumulated from depth frames. Drag to orbit and scroll to zoom. Click **Export** to save the current map as a timestamped PLY file in `exports/` under the working directory.
 
 The trajectory and point cloud depend on successful SLAM tracking. If tracking is lost, those views may pause or contain gaps.
 

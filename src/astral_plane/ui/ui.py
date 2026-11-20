@@ -19,6 +19,7 @@ class UI:
     _PADDING: Final[int] = 16
     _BUTTON_HEIGHT: Final[int] = 38
     _RESET_BUTTON_WIDTH: Final[int] = 90
+    _EXPORT_BUTTON_WIDTH: Final[int] = 72
     _TAB_WIDTH: Final[int] = 140
     _STATE: Final[int] = 0
     _DEPTH: Final[int] = 1
@@ -52,6 +53,7 @@ class UI:
             )
             for index in range(len(self._LABELS))
         )
+
         self._reset_button: pygame.Rect = pygame.Rect(
             self._SIZE[0] - self._PADDING - self._RESET_BUTTON_WIDTH,
             self._PADDING,
@@ -59,6 +61,14 @@ class UI:
             self._BUTTON_HEIGHT,
         )
 
+        self._export_button: pygame.Rect = pygame.Rect(
+            self._reset_button.left - self._PADDING - self._EXPORT_BUTTON_WIDTH,
+            self._PADDING,
+            self._EXPORT_BUTTON_WIDTH,
+            self._BUTTON_HEIGHT,
+        )
+
+        self._status_message: str = ""
         self._content: pygame.Rect = pygame.Rect(
             self._PADDING,
             self._PADDING * 2 + self._BUTTON_HEIGHT,
@@ -112,9 +122,11 @@ class UI:
             pygame.draw.rect(self._screen, (25, 25, 25), button, 1, border_radius=4)
             label = self._font.render(self._LABELS[index], True, text_color)
             self._screen.blit(label, label.get_rect(center=button.center))
+
         pygame.draw.rect(
             self._screen, (185, 55, 55), self._reset_button, border_radius=4
         )
+
         pygame.draw.rect(
             self._screen,
             (145, 35, 35),
@@ -122,8 +134,23 @@ class UI:
             1,
             border_radius=4,
         )
+
         label = self._font.render("Reset", True, (255, 255, 255))
         self._screen.blit(label, label.get_rect(center=self._reset_button.center))
+        pygame.draw.rect(
+            self._screen, (45, 115, 75), self._export_button, border_radius=4
+        )
+
+        pygame.draw.rect(
+            self._screen,
+            (30, 85, 55),
+            self._export_button,
+            1,
+            border_radius=4,
+        )
+
+        label = self._font.render("Export", True, (255, 255, 255))
+        self._screen.blit(label, label.get_rect(center=self._export_button.center))
 
         scale = min(
             self._content.width / view.get_width(),
@@ -135,6 +162,12 @@ class UI:
         rect = image.get_rect(center=self._content.center)
         self._screen.blit(image, rect)
         pygame.draw.rect(self._screen, (35, 35, 35), self._content, 1)
+        if self._status_message:
+            status = self._font.render(self._status_message, True, (45, 75, 55))
+            self._screen.blit(
+                status, (self._PADDING, self._SIZE[1] - status.get_height() - 4)
+            )
+
         pygame.display.flip()
         return True
 
@@ -154,11 +187,22 @@ class UI:
                     self._point_cloud.clear()
                     self._trajectory_view.clear()
                     map_reset = True
+                    self._status_message = "Map reset"
+                elif self._export_button.collidepoint(event.pos):
+                    self._export_point_cloud()
                 else:
                     for index, button in enumerate(self._buttons):
                         if button.collidepoint(event.pos):
                             self._active_tab = index
         return True, map_reset
+
+    def _export_point_cloud(self) -> None:
+        try:
+            path = self._point_cloud.export_ply()
+        except (OSError, ValueError) as error:
+            self._status_message = f"Export failed: {error}"
+        else:
+            self._status_message = f"Exported to {path}"
 
     def _render_view(self, frame: RGBDFrame) -> pygame.Surface:
         if self._active_tab == self._STATE:

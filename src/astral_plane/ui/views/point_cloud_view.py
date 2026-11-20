@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Final
 
 import numpy as np
@@ -68,6 +70,37 @@ class PointCloudView:
         self._last_update = float("-inf")
         self._surface = None
         self._dirty = True
+
+    def export_ply(self) -> Path:
+        if not len(self._points):
+            raise ValueError("The point cloud is empty")
+
+        path = Path("exports") / (
+            f"point_cloud_{datetime.now(timezone.utc):%Y%m%d_%H%M%S_%f}.ply"
+        )
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(
+            (
+                "ply\n"
+                "format binary_little_endian 1.0\n"
+                f"element vertex {len(self._points)}\n"
+                "property float x\n"
+                "property float y\n"
+                "property float z\n"
+                "property uchar red\n"
+                "property uchar green\n"
+                "property uchar blue\n"
+                "end_header\n"
+            ).encode("ascii")
+            + np.rec.fromarrays(
+                [*self._points.T, *self._colors.T],
+                names="x,y,z,red,green,blue",
+                formats=["<f4", "<f4", "<f4", "u1", "u1", "u1"],
+            ).tobytes()
+        )
+
+        return path
 
     def update(
         self,
